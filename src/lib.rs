@@ -186,6 +186,18 @@ impl Identity {
         let identity = imp::Identity::from_pkcs8(pem, key)?;
         Ok(Identity(identity))
     }
+
+    /// Parses a chain of PEM encoded X509 certificates, with the leaf certificate first.
+    /// `key` is a PKCS11 URI for the certificate private key.
+    ///
+    /// The certificate chain should contain any intermediate cerficates that should be sent to
+    /// clients to allow them to build a chain to a trusted root.
+    ///
+    /// A certificate chain here means a series of PEM encoded certificates concatenated together.
+    pub fn from_pkcs11(buf: &[u8], key_uri: &str) -> Result<Identity> {
+        let identity = imp::Identity::from_pkcs11(buf, key_uri)?;
+        Ok(Identity(identity))
+    }
 }
 
 /// An X509 certificate.

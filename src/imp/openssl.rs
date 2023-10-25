@@ -10,6 +10,7 @@ use self::openssl::ssl::{
     self, MidHandshakeSslStream, SslAcceptor, SslConnector, SslContextBuilder, SslMethod,
     SslVerifyMode,
 };
+use self::openssl::store::{Store, StoreInfoType};
 use self::openssl::x509::{store::X509StoreBuilder, X509VerifyResult, X509};
 use std::error;
 use std::fmt;
@@ -115,6 +116,7 @@ pub enum Error {
     Ssl(ssl::Error, X509VerifyResult),
     EmptyChain,
     NotPkcs8,
+    NotPkcs11,
 }
 
 impl error::Error for Error {
@@ -124,6 +126,7 @@ impl error::Error for Error {
             Error::Ssl(ref e, _) => error::Error::source(e),
             Error::EmptyChain => None,
             Error::NotPkcs8 => None,
+            Error::NotPkcs11 => None,
         }
     }
 }
@@ -139,6 +142,7 @@ impl fmt::Display for Error {
                 "at least one certificate must be provided to create an identity"
             ),
             Error::NotPkcs8 => write!(fmt, "expected PKCS#8 PEM"),
+            Error::NotPkcs11 => write!(fmt, "expected PKCS#11 private key URI"),
         }
     }
 }
@@ -176,6 +180,25 @@ impl Identity {
         }
 
         let pkey = PKey::private_key_from_pem(key)?;
+        let mut cert_chain = X509::stack_from_pem(buf)?.into_iter();
+        let cert = cert_chain.next().ok_or(Error::EmptyChain)?;
+        let chain = cert_chain.collect();
+        Ok(Identity { pkey, cert, chain })
+    }
+
+    pub fn from_pkcs11(buf: &[u8], key_uri: &str) -> Result<Identity, Error> {
+        let store = Store::open_ex(key_uri, None, None)?;
+
+        let store_info = Store::try_load(Some(&store))?;
+
+        let store_type = Store::get_type(&store_info)?;
+
+        if store_type != StoreInfoType::PKEY {
+            return Err(Error::NotPkcs11);
+        }
+
+        let pkey = Store::get_pkey(&store_info)?;
+
         let mut cert_chain = X509::stack_from_pem(buf)?.into_iter();
         let cert = cert_chain.next().ok_or(Error::EmptyChain)?;
         let chain = cert_chain.collect();

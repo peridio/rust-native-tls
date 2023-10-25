@@ -34,3 +34,7 @@ openssl-probe = "0.1"
 [dev-dependencies]
 tempfile = "3.0"
 test-cert-gen = "0.9"
+
+[patch.crates-io]
+openssl = { git = "https://github.com/peridio/rust-openssl.git", branch = "peridio-agent", package = "openssl" }
+openssl-sys = { git = "https://github.com/peridio/rust-openssl.git", branch = "peridio-agent", package = "openssl-sys" }
