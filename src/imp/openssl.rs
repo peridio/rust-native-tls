@@ -188,7 +188,7 @@ impl Identity {
         Ok(Identity { pkey, cert, chain })
     }
 
-    pub fn from_pkcs11(buf: &[u8], key_uri: &str) -> Result<Identity, Error> {
+    pub fn from_pkcs11(cert_uri: &str, key_uri: &str) -> Result<Identity, Error> {
         let store = Store::open_ex(key_uri, None, None)?;
 
         let store_info = Store::try_load(Some(&store))?;
@@ -201,10 +201,23 @@ impl Identity {
 
         let pkey = Store::get_pkey(&store_info)?;
 
-        let mut cert_chain = X509::stack_from_pem(buf)?.into_iter();
-        let cert = cert_chain.next().ok_or(Error::EmptyChain)?;
-        let chain = cert_chain.collect();
-        Ok(Identity { pkey, cert, chain })
+        let cert_store = Store::open_ex(cert_uri, None, None)?;
+
+        let cert_store_info = Store::try_load(Some(&cert_store))?;
+
+        let cert_store_type = Store::get_type(&cert_store_info)?;
+
+        if cert_store_type != StoreInfoType::CERT {
+            return Err(Error::NotPkcs11);
+        }
+
+        let cert = Store::get_certificate(&store_info)?;
+
+        Ok(Identity {
+            pkey,
+            cert,
+            chain: Vec::new(),
+        })
     }
 }
 

@@ -194,8 +194,8 @@ impl Identity {
     /// clients to allow them to build a chain to a trusted root.
     ///
     /// A certificate chain here means a series of PEM encoded certificates concatenated together.
-    pub fn from_pkcs11(buf: &[u8], key_uri: &str) -> Result<Identity> {
-        let identity = imp::Identity::from_pkcs11(buf, key_uri)?;
+    pub fn from_pkcs11(cert_uri: &str, key_uri: &str) -> Result<Identity> {
+        let identity = imp::Identity::from_pkcs11(cert_uri, key_uri)?;
         Ok(Identity(identity))
     }
 }
